@@ -1,67 +1,100 @@
-# React Slingshot!
 
-[![Build status: Linux](https://img.shields.io/travis/coryhouse/react-slingshot.svg?style=flat-square)](https://travis-ci.org/coryhouse/react-slingshot)
-[![Build status: Windows](https://ci.appveyor.com/api/projects/status/ky0npqkot20ieiak?svg=true)](https://ci.appveyor.com/project/coryhouse/react-slingshot/branch/master)
-[![Dependency Status](https://david-dm.org/coryhouse/react-slingshot.svg?style=flat-square)](https://david-dm.org/coryhouse/react-slingshot)
-[![Coverage Status](https://coveralls.io/repos/github/coryhouse/react-slingshot/badge.svg?branch=master)](https://coveralls.io/github/coryhouse/react-slingshot?branch=master)
+# Docker build for npm based web application
 
-React Slingshot is a comprehensive starter kit for rapid application development using React. 
+## Overview
 
-Why Slingshot?
+Sometimes it can be difficult to create clean Docker images for
+applications that have lots of build time dependencies.  Production
+images may then end up containing extra packages, such as compilers,
+that shouldn't really be there.  One approach is to write Dockerfiles
+that first installs the dependencies, then builds the application and
+finally removes unnecessary dependencies.  Another approach is to use
+build container.
 
-1. **One command to get started** - Type `npm start` to start development in your default browser.
-2. **Rapid feedback** - Each time you hit save, changes hot reload and linting and automated tests run.
-3. **One command line to check** - All feedback is displayed on a single command line.
-4. **No more JavaScript fatigue** - Slingshot uses the most popular and powerful libraries for working with React.
-5. **Working example app** - The included example app shows how this all works together.
-6. **Automated production build** - Type `npm run build` to do all this:
+This tutorial shows how to use an intermediate npm build container to
+produce clean Docker image for the web app, free of any build time
+dependencies.
 
-[![React Slingshot Production Build](https://img.youtube.com/vi/qlfDLsX-J0U/0.jpg)](https://www.youtube.com/watch?v=qlfDLsX-J0U)
+The basic idea is 2-step build (based on
+[dockerception](https://github.com/jamiemccrindle/dockerception)):
 
-## Get Started
-1. **Initial Machine Setup**. First time running the starter kit? Then complete the [Initial Machine Setup](https://github.com/coryhouse/react-slingshot#initial-machine-setup).
-2. **Clone the project**. `git clone https://github.com/coryhouse/react-slingshot.git`.
-3. **Run the setup script**. `npm run setup`
-4. **Run the example app**. `npm start -s`
-This will run the automated build process, start up a webserver, and open the application in your default browser. When doing development with this kit, this command will continue watching all your files. Every time you hit save the code is rebuilt, linting runs, and tests run automatically. Note: The -s flag is optional. It enables silent mode which suppresses unnecessary messages during the build.
-5. **Review the example app.** This starter kit includes a working example app that calculates fuel savings. Note how all source code is placed under /src. Tests are placed alongside the file under test. The final built app is placed under /dist. These are the files you run in production.
-6. **Delete the example app files.** Once you're comfortable with how the example app works, you can [delete those files and begin creating your own app](https://github.com/coryhouse/react-slingshot/blob/master/docs/FAQ.md#i-just-want-an-empty-starter-kit).
+1. Run npm build for the application inside a build container.  The
+   container should include all build time dependencies.  At the end
+   of build, copy the results into a tar.gz package and export it from
+   the container.  Include also a Dockerfile for the production image
+   inside the tar.gz.
 
-##Initial Machine Setup
-1. **Install [Node 4.0.0 or greater](https://nodejs.org)** - (5.0 or greater is recommended for optimal build performance). Need to run multiple versions of Node? Use [nvm](https://github.com/creationix/nvm).
-2. **Install [Git](https://git-scm.com/downloads)**. 
-3. On a Mac? You're all set. If you're on Linux or Windows, complete the steps for your OS below.  
- 
-**On Linux:**  
+2. Run `docker build` to build the production container image by using
+   the output of step 1 as build
+   ["context"](https://docs.docker.com/engine/reference/builder/).
 
- * Run this to [increase the limit](http://stackoverflow.com/questions/16748737/grunt-watch-error-waiting-fatal-error-watch-enospc) on the number of files Linux will watch. [Here's why](https://github.com/coryhouse/react-slingshot/issues/6).    
-`echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p` 
+The end result is production container image that does not contain
+e.g. nodejs, npm, babel which were required to build the
+application.
 
-**On Windows:** 
- 
-* **Install [Python 2.7](https://www.python.org/downloads/)**. Some node modules may rely on node-gyp, which requires Python on Windows.
-* **Install C++ Compiler**. Browser-sync requires a C++ compiler on Windows. [Visual Studio Express](https://www.visualstudio.com/en-US/products/visual-studio-express-vs) comes bundled with a free C++ compiler. Or, if you already have Visual Studio installed: Open Visual Studio and go to File -> New -> Project -> Visual C++ -> Install Visual C++ Tools for Windows Desktop. The C++ compiler is used to compile browser-sync (and perhaps other Node modules).
+The same basic approach should work for other environments too, such
+as for building clean Python application images.
 
-##Technologies
-Slingshot offers a rich development experience using the following technologies:
 
-| **Tech** | **Description** |**Learn More**|
-|----------|-------|---|
-|  [React](https://facebook.github.io/react/)  |   Fast, composable client-side components.    | [Pluralsight Course](https://www.pluralsight.com/courses/react-flux-building-applications)  |
-|  [Redux](http://redux.js.org) |  Enforces unidirectional data flows and immutable, hot reloadable store. Supports time-travel debugging. Lean alternative to [Facebook's Flux](https://facebook.github.io/flux/docs/overview.html).| [Pluralsight Course](http://www.pluralsight.com/courses/react-redux-react-router-es6)    |
-|  [React Router](https://github.com/reactjs/react-router) | A complete routing library for React | [Pluralsight Course](https://www.pluralsight.com/courses/react-flux-building-applications) |
-|  [Babel](http://babeljs.io) |  Compiles ES6 to ES5. Enjoy the new version of JavaScript today.     | [ES6 REPL](https://babeljs.io/repl/), [ES6 vs ES5](http://es6-features.org), [ES6 Katas](http://es6katas.org), [Pluralsight course](https://www.pluralsight.com/courses/javascript-fundamentals-es6)    |
-| [Webpack](http://webpack.github.io) | Bundles npm packages and our JS into a single file. Includes hot reloading via [react-transform-hmr](https://www.npmjs.com/package/react-transform-hmr). | [Quick Webpack How-to](https://github.com/petehunt/webpack-howto) [Pluralsight Course](https://www.pluralsight.com/courses/webpack-fundamentals)|
-| [Browsersync](https://www.browsersync.io/) | Lightweight development HTTP server that supports synchronized testing and debugging on multiple devices. | [Intro vid](https://www.youtube.com/watch?time_continue=1&v=heNWfzc7ufQ)|
-| [Mocha](http://mochajs.org) | Automated tests with [Chai](http://chaijs.com/) for assertions and [Enzyme](https://github.com/airbnb/enzyme) for DOM testing without a browser using Node. | [Pluralsight Course](https://www.pluralsight.com/courses/testing-javascript) |
-| [Isparta](https://github.com/douglasduteil/isparta) | Code coverage tool for ES6 code transpiled by Babel. | 
-| [TrackJS](https://trackjs.com/) | JavaScript error tracking. | [Free trial](https://my.trackjs.com/signup)|  
-| [ESLint](http://eslint.org/)| Lint JS. Reports syntax and style issues. Using [eslint-plugin-react](https://github.com/yannickcr/eslint-plugin-react) for additional React specific linting rules. | |
-| [SASS](http://sass-lang.com/) | Compiled CSS styles with variables, functions, and more. | [Pluralsight Course](https://www.pluralsight.com/courses/better-css)|
-| [PostCSS](https://github.com/postcss/postcss) | Transform styles with JS plugins. Used to autoprefix CSS |
-| [Editor Config](http://editorconfig.org) | Enforce consistent editor settings (spaces vs tabs, etc). | [IDE Plugins](http://editorconfig.org/#download) |
-| [npm Scripts](https://docs.npmjs.com/misc/scripts)| Glues all this together in a handy automated build. | [Pluralsight course](https://www.pluralsight.com/courses/npm-build-tool-introduction), [Why not Gulp?](https://medium.com/@housecor/why-i-left-gulp-and-grunt-for-npm-scripts-3d6853dd22b8#.vtaziro8n)  |
+## Build process
 
-The starter kit includes a working example app that puts all of the above to use.
-## Questions?
-Check out the [FAQ](/docs/FAQ.md)
+### 1. Building the application using the build container
+
+In first step we use [node](https://hub.docker.com/_/node/) image from
+Docker hub as the build container for our web application.  Custom
+build container might be more appropriate when extra OS packages
+are required by the build, but it is unnecessary in this case.
+
+The build is executed by running following command in the root
+directory of the repository:
+
+    docker run --rm \
+        --volume $PWD:/source:ro \
+        --volume $HOME/cache:/cache \
+        --volume $HOME/output:/output \
+        node \
+        /source/docker/build.sh /output/myapp.tar.gz
+
+The application source code is mounted as read-only at `/source/`.
+Build script will create temporary copy and run the build within the
+working copy.  The build results will be stored into a volume mounted
+at `/output/`.
+
+To speed up the installation of the build time dependencies, we mount
+a directory from host at `/cache/` and use it as a cache for npm.
+
+The build is handled by script [docker/build.sh](docker/build.sh).
+It also sets up npm cache on the cache volume.
+
+
+### 2. Building the production container image
+
+[NGINX](https://hub.docker.com/_/nginx/) image is used as the base for
+the production image with the addition of pre-build application from
+step 1.  See [Dockerfile](docker/Dockerfile).
+
+The build result from previous step (`$HOME/output/myapp.tar.gz`) is
+used as Docker build
+["context"](https://docs.docker.com/engine/reference/builder/) by this
+step.  This makes it unnecessary to prepare temporary directory layout
+of files to be packaged on the host system.  Instead, everything can
+be prepared inside the build container, as was done in step 1.
+
+Here is how to run the build with a tar.gz as context:
+
+    docker build --tag myapp - < $HOME/output/myapp.tar.gz
+
+
+And we are finished!  You can now test the image by starting it and
+pointing your browser at [http://localhost:8080](http://localhost:8080).
+
+    docker run --rm --publish 8080:80 myapp
+
+
+## Acnowledgements
+
+The example application used by this tutorial is based on splendid web
+app template
+[react-slingshot](https://github.com/coryhouse/react-slingshot) by
+Cory House.  I have only added this `README.md` and whatever is found
+under [docker](docker) directory.
